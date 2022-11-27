@@ -58703,6 +58703,58 @@ function coerce (version, options) {
 
 /***/ }),
 
+/***/ 9453:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+exports.__esModule = true;
+function parseArgsStringToArgv(value, env, file) {
+    // ([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*) Matches nested quotes until the first space outside of quotes
+    // [^\s'"]+ or Match if not a space ' or "
+    // (['"])([^\5]*?)\5 or Match "quoted text" without quotes
+    // `\3` and `\5` are a backreference to the quote style (' or ") captured
+    var myRegexp = /([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*)|[^\s'"]+|(['"])([^\5]*?)\5/gi;
+    var myString = value;
+    var myArray = [];
+    if (env) {
+        myArray.push(env);
+    }
+    if (file) {
+        myArray.push(file);
+    }
+    var match;
+    do {
+        // Each call to exec returns the next regex match as an array
+        match = myRegexp.exec(myString);
+        if (match !== null) {
+            // Index 1 in the array is the captured group if it exists
+            // Index 0 is the matched text, which we use if no captured group exists
+            myArray.push(firstString(match[1], match[6], match[0]));
+        }
+    } while (match !== null);
+    return myArray;
+}
+exports["default"] = parseArgsStringToArgv;
+exports.parseArgsStringToArgv = parseArgsStringToArgv;
+// Accepts any number of arguments, and returns the first one that is a string
+// (even an empty string)
+function firstString() {
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+    }
+    for (var i = 0; i < args.length; i++) {
+        var arg = args[i];
+        if (typeof arg === "string") {
+            return arg;
+        }
+    }
+}
+
+
+/***/ }),
+
 /***/ 4294:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -64611,6 +64663,8 @@ const exec = __importStar(__nccwpck_require__(1514));
 const glob = __importStar(__nccwpck_require__(8090));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const path_1 = __importDefault(__nccwpck_require__(1017));
+const string_argv_1 = __nccwpck_require__(9453);
+const execution_1 = __nccwpck_require__(3584);
 class CacheCleaner {
     constructor(gradleUserHome, tmpDir) {
         this.gradleUserHome = gradleUserHome;
@@ -64632,14 +64686,16 @@ class CacheCleaner {
             fs_1.default.mkdirSync(cleanupProjectDir, { recursive: true });
             fs_1.default.writeFileSync(path_1.default.resolve(cleanupProjectDir, 'settings.gradle'), 'rootProject.name = "dummy-cleanup-project"');
             fs_1.default.writeFileSync(path_1.default.resolve(cleanupProjectDir, 'build.gradle'), 'task("noop") {}');
-            yield exec.exec(`gradle -g ${this.gradleUserHome} --no-daemon --build-cache --no-scan --quiet noop`, [], {
+            const toExecute = core.getState(execution_1.GRADLE_TO_EXECUTE);
+            const args = (0, string_argv_1.parseArgsStringToArgv)(`-g ${this.gradleUserHome} --no-daemon --build-cache --no-scan --quiet noop`);
+            yield exec.exec(toExecute, args, {
                 cwd: cleanupProjectDir
             });
         });
     }
     ageAllFiles(fileName = '*') {
         return __awaiter(this, void 0, void 0, function* () {
-            core.debug(`Aging all files in Gradle User Homee with name ${fileName}`);
+            core.debug(`Aging all files in Gradle User Home with name ${fileName}`);
             yield this.setUtimes(`${this.gradleUserHome}/**/${fileName}`, new Date(0));
         });
     }
@@ -65608,6 +65664,139 @@ class DaemonController {
     }
 }
 exports.DaemonController = DaemonController;
+
+
+/***/ }),
+
+/***/ 3584:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.executeGradleBuild = exports.GRADLE_TO_EXECUTE = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+const gradlew = __importStar(__nccwpck_require__(2335));
+exports.GRADLE_TO_EXECUTE = 'GRADLE_TO_EXECUTE';
+function executeGradleBuild(executable, root, args) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const toExecute = executable !== null && executable !== void 0 ? executable : gradlew.locateGradleWrapperScript(root);
+        verifyIsExecutableScript(toExecute);
+        core.saveState(exports.GRADLE_TO_EXECUTE, toExecute);
+        const status = yield exec.exec(toExecute, args, {
+            cwd: root,
+            ignoreReturnCode: true
+        });
+        if (status !== 0) {
+            core.setFailed(`Gradle build failed: see console output for details`);
+        }
+    });
+}
+exports.executeGradleBuild = executeGradleBuild;
+function verifyIsExecutableScript(toExecute) {
+    try {
+        fs_1.default.accessSync(toExecute, fs_1.default.constants.X_OK);
+    }
+    catch (err) {
+        throw new Error(`Gradle script '${toExecute}' is not executable.`);
+    }
+}
+
+
+/***/ }),
+
+/***/ 2335:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.locateGradleWrapperScript = exports.installScriptFilename = exports.wrapperScriptFilename = void 0;
+const path = __importStar(__nccwpck_require__(1017));
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+const IS_WINDOWS = process.platform === 'win32';
+function wrapperScriptFilename() {
+    return IS_WINDOWS ? 'gradlew.bat' : 'gradlew';
+}
+exports.wrapperScriptFilename = wrapperScriptFilename;
+function installScriptFilename() {
+    return IS_WINDOWS ? 'gradle.bat' : 'gradle';
+}
+exports.installScriptFilename = installScriptFilename;
+function locateGradleWrapperScript(buildRootDirectory) {
+    validateGradleWrapper(buildRootDirectory);
+    return path.resolve(buildRootDirectory, wrapperScriptFilename());
+}
+exports.locateGradleWrapperScript = locateGradleWrapperScript;
+function validateGradleWrapper(buildRootDirectory) {
+    const wrapperProperties = path.resolve(buildRootDirectory, 'gradle/wrapper/gradle-wrapper.properties');
+    if (!fs_1.default.existsSync(wrapperProperties)) {
+        throw new Error(`Cannot locate a Gradle wrapper properties file at '${wrapperProperties}'. Specify 'gradle-version' or 'gradle-executable' for projects without Gradle wrapper configured.`);
+    }
+}
 
 
 /***/ }),

@@ -3,10 +3,16 @@ import * as exec from '@actions/exec'
 import fs from 'fs'
 import * as gradlew from './gradlew'
 
+export const GRADLE_TO_EXECUTE = 'GRADLE_TO_EXECUTE'
+
 export async function executeGradleBuild(executable: string | undefined, root: string, args: string[]): Promise<void> {
     // Use the provided executable, or look for a Gradle wrapper script to run
     const toExecute = executable ?? gradlew.locateGradleWrapperScript(root)
     verifyIsExecutableScript(toExecute)
+
+    // Save determined executable or wrapper script for use in the post-action step.
+    core.saveState(GRADLE_TO_EXECUTE, toExecute)
+
     const status: number = await exec.exec(toExecute, args, {
         cwd: root,
         ignoreReturnCode: true

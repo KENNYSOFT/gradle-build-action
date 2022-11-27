@@ -65560,6 +65560,8 @@ const exec = __importStar(__nccwpck_require__(1514));
 const glob = __importStar(__nccwpck_require__(8090));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const path_1 = __importDefault(__nccwpck_require__(1017));
+const string_argv_1 = __nccwpck_require__(9453);
+const execution_1 = __nccwpck_require__(3584);
 class CacheCleaner {
     constructor(gradleUserHome, tmpDir) {
         this.gradleUserHome = gradleUserHome;
@@ -65581,14 +65583,16 @@ class CacheCleaner {
             fs_1.default.mkdirSync(cleanupProjectDir, { recursive: true });
             fs_1.default.writeFileSync(path_1.default.resolve(cleanupProjectDir, 'settings.gradle'), 'rootProject.name = "dummy-cleanup-project"');
             fs_1.default.writeFileSync(path_1.default.resolve(cleanupProjectDir, 'build.gradle'), 'task("noop") {}');
-            yield exec.exec(`gradle -g ${this.gradleUserHome} --no-daemon --build-cache --no-scan --quiet noop`, [], {
+            const toExecute = core.getState(execution_1.GRADLE_TO_EXECUTE);
+            const args = (0, string_argv_1.parseArgsStringToArgv)(`-g ${this.gradleUserHome} --no-daemon --build-cache --no-scan --quiet noop`);
+            yield exec.exec(toExecute, args, {
                 cwd: cleanupProjectDir
             });
         });
     }
     ageAllFiles(fileName = '*') {
         return __awaiter(this, void 0, void 0, function* () {
-            core.debug(`Aging all files in Gradle User Homee with name ${fileName}`);
+            core.debug(`Aging all files in Gradle User Home with name ${fileName}`);
             yield this.setUtimes(`${this.gradleUserHome}/**/${fileName}`, new Date(0));
         });
     }
@@ -66602,15 +66606,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.executeGradleBuild = void 0;
+exports.executeGradleBuild = exports.GRADLE_TO_EXECUTE = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const gradlew = __importStar(__nccwpck_require__(2335));
+exports.GRADLE_TO_EXECUTE = 'GRADLE_TO_EXECUTE';
 function executeGradleBuild(executable, root, args) {
     return __awaiter(this, void 0, void 0, function* () {
         const toExecute = executable !== null && executable !== void 0 ? executable : gradlew.locateGradleWrapperScript(root);
         verifyIsExecutableScript(toExecute);
+        core.saveState(exports.GRADLE_TO_EXECUTE, toExecute);
         const status = yield exec.exec(toExecute, args, {
             cwd: root,
             ignoreReturnCode: true

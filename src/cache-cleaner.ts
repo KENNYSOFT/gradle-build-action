@@ -3,6 +3,8 @@ import * as exec from '@actions/exec'
 import * as glob from '@actions/glob'
 import fs from 'fs'
 import path from 'path'
+import {parseArgsStringToArgv} from 'string-argv'
+import {GRADLE_TO_EXECUTE} from './execution'
 
 export class CacheCleaner {
     private readonly gradleUserHome: string
@@ -42,13 +44,16 @@ export class CacheCleaner {
         )
         fs.writeFileSync(path.resolve(cleanupProjectDir, 'build.gradle'), 'task("noop") {}')
 
-        await exec.exec(`gradle -g ${this.gradleUserHome} --no-daemon --build-cache --no-scan --quiet noop`, [], {
+        const toExecute = core.getState(GRADLE_TO_EXECUTE)
+        const args = parseArgsStringToArgv(`-g ${this.gradleUserHome} --no-daemon --build-cache --no-scan --quiet noop`)
+
+        await exec.exec(toExecute, args, {
             cwd: cleanupProjectDir
         })
     }
 
     private async ageAllFiles(fileName = '*'): Promise<void> {
-        core.debug(`Aging all files in Gradle User Homee with name ${fileName}`)
+        core.debug(`Aging all files in Gradle User Home with name ${fileName}`)
         await this.setUtimes(`${this.gradleUserHome}/**/${fileName}`, new Date(0))
     }
 
