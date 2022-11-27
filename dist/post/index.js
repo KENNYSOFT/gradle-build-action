@@ -65705,21 +65705,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.executeGradleBuild = exports.GRADLE_TO_EXECUTE = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-const gradlew = __importStar(__nccwpck_require__(2335));
 exports.GRADLE_TO_EXECUTE = 'GRADLE_TO_EXECUTE';
-function executeGradleBuild(executable, root, args) {
+function executeGradleBuild(toExecute, root, args) {
     return __awaiter(this, void 0, void 0, function* () {
-        const toExecute = executable !== null && executable !== void 0 ? executable : gradlew.locateGradleWrapperScript(root);
-        verifyIsExecutableScript(toExecute);
-        core.saveState(exports.GRADLE_TO_EXECUTE, toExecute);
         const status = yield exec.exec(toExecute, args, {
             cwd: root,
             ignoreReturnCode: true
@@ -65730,73 +65722,6 @@ function executeGradleBuild(executable, root, args) {
     });
 }
 exports.executeGradleBuild = executeGradleBuild;
-function verifyIsExecutableScript(toExecute) {
-    try {
-        fs_1.default.accessSync(toExecute, fs_1.default.constants.X_OK);
-    }
-    catch (err) {
-        throw new Error(`Gradle script '${toExecute}' is not executable.`);
-    }
-}
-
-
-/***/ }),
-
-/***/ 2335:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.locateGradleWrapperScript = exports.installScriptFilename = exports.wrapperScriptFilename = void 0;
-const path = __importStar(__nccwpck_require__(1017));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-const IS_WINDOWS = process.platform === 'win32';
-function wrapperScriptFilename() {
-    return IS_WINDOWS ? 'gradlew.bat' : 'gradlew';
-}
-exports.wrapperScriptFilename = wrapperScriptFilename;
-function installScriptFilename() {
-    return IS_WINDOWS ? 'gradle.bat' : 'gradle';
-}
-exports.installScriptFilename = installScriptFilename;
-function locateGradleWrapperScript(buildRootDirectory) {
-    validateGradleWrapper(buildRootDirectory);
-    return path.resolve(buildRootDirectory, wrapperScriptFilename());
-}
-exports.locateGradleWrapperScript = locateGradleWrapperScript;
-function validateGradleWrapper(buildRootDirectory) {
-    const wrapperProperties = path.resolve(buildRootDirectory, 'gradle/wrapper/gradle-wrapper.properties');
-    if (!fs_1.default.existsSync(wrapperProperties)) {
-        throw new Error(`Cannot locate a Gradle wrapper properties file at '${wrapperProperties}'. Specify 'gradle-version' or 'gradle-executable' for projects without Gradle wrapper configured.`);
-    }
-}
 
 
 /***/ }),

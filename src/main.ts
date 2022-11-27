@@ -1,10 +1,12 @@
 import * as core from '@actions/core'
 import * as path from 'path'
 import {parseArgsStringToArgv} from 'string-argv'
+import fs from 'fs'
 
 import * as setupGradle from './setup-gradle'
 import * as execution from './execution'
 import * as provision from './provision'
+import * as gradlew from './gradlew'
 
 /**
  * The main entry point for the action, called by Github Actions for the step.
@@ -22,10 +24,17 @@ export async function run(): Promise<void> {
             core.addPath(path.dirname(executable))
         }
 
+        // Use the provided executable, or look for a Gradle wrapper script to run
+        const toExecute = executable ?? gradlew.locateGradleWrapperScript(buildRootDirectory)
+        verifyIsExecutableScript(toExecute)
+
+        // Save determined executable or wrapper script for use in the post-action step.
+        core.saveState(execution.GRADLE_TO_EXECUTE, toExecute)
+
         // Only execute if arguments have been provided
         const args: string[] = parseCommandLineArguments()
         if (args.length > 0) {
-            await execution.executeGradleBuild(executable, buildRootDirectory, args)
+            await execution.executeGradleBuild(toExecute, buildRootDirectory, args)
         }
     } catch (error) {
         core.setFailed(String(error))
@@ -56,6 +65,14 @@ function resolveBuildRootDirectory(baseDirectory: string): string {
     const resolvedBuildRootDirectory =
         buildRootDirectory === '' ? path.resolve(baseDirectory) : path.resolve(baseDirectory, buildRootDirectory)
     return resolvedBuildRootDirectory
+}
+
+function verifyIsExecutableScript(toExecute: string): void {
+    try {
+        fs.accessSync(toExecute, fs.constants.X_OK)
+    } catch (err) {
+        throw new Error(`Gradle script '${toExecute}' is not executable.`)
+    }
 }
 
 function parseCommandLineArguments(): string[] {

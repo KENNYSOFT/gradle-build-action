@@ -66602,21 +66602,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.executeGradleBuild = exports.GRADLE_TO_EXECUTE = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-const gradlew = __importStar(__nccwpck_require__(2335));
 exports.GRADLE_TO_EXECUTE = 'GRADLE_TO_EXECUTE';
-function executeGradleBuild(executable, root, args) {
+function executeGradleBuild(toExecute, root, args) {
     return __awaiter(this, void 0, void 0, function* () {
-        const toExecute = executable !== null && executable !== void 0 ? executable : gradlew.locateGradleWrapperScript(root);
-        verifyIsExecutableScript(toExecute);
-        core.saveState(exports.GRADLE_TO_EXECUTE, toExecute);
         const status = yield exec.exec(toExecute, args, {
             cwd: root,
             ignoreReturnCode: true
@@ -66627,14 +66619,6 @@ function executeGradleBuild(executable, root, args) {
     });
 }
 exports.executeGradleBuild = executeGradleBuild;
-function verifyIsExecutableScript(toExecute) {
-    try {
-        fs_1.default.accessSync(toExecute, fs_1.default.constants.X_OK);
-    }
-    catch (err) {
-        throw new Error(`Gradle script '${toExecute}' is not executable.`);
-    }
-}
 
 
 /***/ }),
@@ -66858,14 +66842,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(1017));
 const string_argv_1 = __nccwpck_require__(9453);
+const fs_1 = __importDefault(__nccwpck_require__(7147));
 const setupGradle = __importStar(__nccwpck_require__(8652));
 const execution = __importStar(__nccwpck_require__(3584));
 const provision = __importStar(__nccwpck_require__(2501));
+const gradlew = __importStar(__nccwpck_require__(2335));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -66876,9 +66865,12 @@ function run() {
             if (executable !== undefined) {
                 core.addPath(path.dirname(executable));
             }
+            const toExecute = executable !== null && executable !== void 0 ? executable : gradlew.locateGradleWrapperScript(buildRootDirectory);
+            verifyIsExecutableScript(toExecute);
+            core.saveState(execution.GRADLE_TO_EXECUTE, toExecute);
             const args = parseCommandLineArguments();
             if (args.length > 0) {
-                yield execution.executeGradleBuild(executable, buildRootDirectory, args);
+                yield execution.executeGradleBuild(toExecute, buildRootDirectory, args);
             }
         }
         catch (error) {
@@ -66908,6 +66900,14 @@ function resolveBuildRootDirectory(baseDirectory) {
     const buildRootDirectory = core.getInput('build-root-directory');
     const resolvedBuildRootDirectory = buildRootDirectory === '' ? path.resolve(baseDirectory) : path.resolve(baseDirectory, buildRootDirectory);
     return resolvedBuildRootDirectory;
+}
+function verifyIsExecutableScript(toExecute) {
+    try {
+        fs_1.default.accessSync(toExecute, fs_1.default.constants.X_OK);
+    }
+    catch (err) {
+        throw new Error(`Gradle script '${toExecute}' is not executable.`);
+    }
 }
 function parseCommandLineArguments() {
     const input = core.getInput('arguments');

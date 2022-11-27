@@ -1,8 +1,9 @@
 import fs from 'fs'
 import path from 'path'
 import {parseArgsStringToArgv} from 'string-argv'
-import {executeGradleBuild} from '../../src/execution'
+import {GRADLE_TO_EXECUTE, executeGradleBuild} from '../../src/execution'
 import {CacheCleaner} from '../../src/cache-cleaner'
+import * as gradlew from '../../src/gradlew'
 
 jest.setTimeout(120000)
 
@@ -122,8 +123,10 @@ test('will cleanup when only using wrapper', async () => {
 })
 
 async function runGradleBuild(projectRoot: string, args: string, version: string = '3.1'): Promise<void> {
+    const toExecute = 'gradle'
+    state[GRADLE_TO_EXECUTE] = toExecute
     await executeGradleBuild(
-        'gradle',
+        toExecute,
         projectRoot,
         parseArgsStringToArgv(`-g HOME --no-daemon --build-cache -Dcommons_math3_version=${version} ${args}`)
     )
@@ -131,8 +134,10 @@ async function runGradleBuild(projectRoot: string, args: string, version: string
 }
 
 async function runGradleWrapperBuild(projectRoot: string, args: string, version: string = '3.1'): Promise<void> {
+    const toExecute = gradlew.locateGradleWrapperScript(projectRoot)
+    state[GRADLE_TO_EXECUTE] = toExecute
     await executeGradleBuild(
-        undefined,
+        toExecute,
         projectRoot,
         parseArgsStringToArgv(`-g HOME --no-daemon --build-cache -Dcommons_math3_version=${version} ${args}`)
     )
